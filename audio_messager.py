@@ -12,13 +12,13 @@ class Messager:
 		helper = """
 Usage example:
 
-./{} --user "some_short_link_to_user" "Джони, они на деревьях!"
+./audio_messager.py --user "some_short_link_to_user" "Джони, они на деревьях!"
 
-./{} --chat "DecSec conf" "Эй, кто съел мои чебупели?"
+./audio_messager.py --chat "DecSec conf" "Эй, кто съел мои чебупели?"
 
-python3 {} --user "https://vk.com/id%some_id%" --file some_music.wav
+python3 audio_messager.py --user "https://vk.com/id%some_id%" --file some_music.wav
 
-python3 {} --chat "Гражданская оборона" --file moya_oborona.mp3
+python3 audio_messager.py --chat "Гражданская оборона" --file moya_oborona.mp3
 
 
 Options:
@@ -28,7 +28,7 @@ Options:
 
 Note that these are positional arguments, you can not permute them. 
 The message must be written in quotes.
-""".format(prog, prog, prog, prog)
+"""
 
 		options = json.loads(open("config.json").read(), encoding='utf-8')
 
