@@ -37,7 +37,7 @@ Options:
 
 --chat  "chat name"	         	Name of chate to send a message
 
---file	filename.wav          Read voice/music form file
+--file	filename.wav              Read voice/music form file
 ```
 Note that these are positional arguments, you can not permute them. 
 The message must be written in quotes.
