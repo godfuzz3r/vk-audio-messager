@@ -13,7 +13,7 @@ requirements
 install requirements
 =====================
 ```
-pip3 vk_api
+pip3 install vk_api
 sudo apt-get install espeak
 sudo apt-get install ffmpeg
 ```
