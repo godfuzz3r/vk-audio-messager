@@ -27,7 +27,7 @@ Usage example:
 
 python3 ausio_messager.py -u "https://vk.com/id%some_id%" --file=some_music.wav
 
-python3 ausio_messager.py --ch "Гражданская оборона" -f moya_oborona.mp3
+python3 ausio_messager.py -ch "Гражданская оборона" -f moya_oborona.mp3
 
 ***
 Options:
