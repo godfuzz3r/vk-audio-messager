@@ -21,13 +21,13 @@ sudo apt-get install ffmpeg
 Usage example:
 =====================
 
-./{} --user="some_short_link_to_user" --text="Джони, они на деревьях!"
+./ausio_messager.py --user="some_short_link_to_user" --text="Джони, они на деревьях!"
 
-./{} --chat="DecSec conf" -t "Эй, кто съел мои чебупели?"
+./ausio_messager.py --chat="DecSec conf" -t "Эй, кто съел мои чебупели?"
 
-python3 {} -u "https://vk.com/id%some_id%" --file=some_music.wav
+python3 ausio_messager.py -u "https://vk.com/id%some_id%" --file=some_music.wav
 
-python3 {} --ch "Гражданская оборона" -f moya_oborona.mp3
+python3 ausio_messager.py --ch "Гражданская оборона" -f moya_oborona.mp3
 
 ***
 Options:
