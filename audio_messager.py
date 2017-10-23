@@ -5,62 +5,81 @@ import os
 import sys
 import subprocess
 import json
+import optparse
 
 class Messager:
 	def __init__(self):
-		prog = sys.argv[0]
-		helper = """
-Usage example:
+		if sys.argv[0][0:2] == './':
+			prog = sys.argv[0][3:]
+		else:
+			prog = sys.argv[0]
+		banner = """
+Usage examples:
 
-./audio_messager.py --user "some_short_link_to_user" "Джони, они на деревьях!"
+./{} --user "some_short_link_to_user" --text "Джони, они на деревьях!"
 
-./audio_messager.py --chat "DecSec conf" "Эй, кто съел мои чебупели?"
+./{} --chat "DecSec conf" --text "Эй, кто съел мои чебупели?"
 
-python3 audio_messager.py --user "https://vk.com/id%some_id%" --file some_music.wav
+python3 {} --user "https://vk.com/id%some_id%" --file some_music.wav
 
-python3 audio_messager.py --chat "Гражданская оборона" --file moya_oborona.mp3
+python3 {} --chat "Гражданская оборона" --file moya_oborona.mp3
 
+python3 {} --help
+		""".format(prog, prog, prog, prog, prog)
 
-Options:
---user		link or id to user, who needs to send a message
---chat		Name of chate to send a message
---file		Read voice/music form file
+		user, chat, text, file_name, Options = self.get_options(banner)
 
-Note that these are positional arguments, you can not permute them. 
-The message must be written in quotes.
-"""
-
-		options = json.loads(open("config.json").read(), encoding='utf-8')
-
-		auth = self.auth(options)
+		auth = self.auth(Options)
 		
 		try:
-			if sys.argv[3] == "--file":
+			if file_name != None:
 				voice = "message.wav"
-				subprocess.call('ffmpeg -i {} -map_channel 0.0.0 {}'.format(sys.argv[4], voice), shell=True)
+				subprocess.call('ffmpeg -i {} -map_channel 0.0.0 {}'.format(file_name, voice), shell=True)
+				uploaded_voice = self.upload_file(voice, auth)
+			elif text != None:
+				voice = self.create_voice(text)
 				uploaded_voice = self.upload_file(voice, auth)
 			else:
-				voice = self.create_voice(sys.argv[3])
-				uploaded_voice = self.upload_file(voice, auth)
+				sys.exit(0)
 
-			if sys.argv[1] == "--user":
-				user_id = self.get_user_id(sys.argv[2], auth)
+			if user != None:
+				user_id = self.get_user_id(user, auth)
 				self.send_msg(uploaded_voice, user_id, auth)
-			elif sys.argv[1] == "--chat":
-				chat = self.get_chat_id(sys.argv[2], auth)
+			elif chat != None:
+				chat = self.get_chat_id(chat, auth)
 				self.send_chat_msg(uploaded_voice, chat, auth)
+			else:
+				sys.exit(0)
 			print("Done")
-
-		except IndexError:
-			print("Incorrect input.")
-			print(helper)
+		except Exception as e:
+			print(e)
 			sys.exit(0)
-
-		except FileNotFoundError:
-			print("File not found.")
-			sys.exit(0)
-			
 		
+	def get_options(self, banner):
+		parser = optparse.OptionParser(banner)
+		parser.add_option('-u', '--user', dest='username',
+				  help = 'link or id to user, who needs to send a message', 
+				  metavar = 'USER')
+		parser.add_option('-c', '--chat', dest='chatname',
+				  help = 'Name of chate to send a message', 
+				  metavar = 'CHAT')
+		parser.add_option('-f', '--file', dest='filename',
+				  help = 'Read voice/music form file', 
+				  metavar = 'FILE')
+		parser.add_option('-t', '--text', dest='text',
+				  help = 'Voice this text by robot',
+				  metavar = '"Some QUOTED text"')
+		
+		(options, args) = parser.parse_args()		
+
+		
+		user_name = options.username
+		chat_name = options.chatname
+		file_name = options.filename
+		text = options.text
+		Options = json.loads(open("config.json").read(), encoding='utf-8')
+		return user_name, chat_name, text, file_name, Options	
+
 	def create_voice(self, message):
 		file_name = "message.wav"
 		cmd_1 = 'espeak -vru -s3 -z "{}" -w prepare.wav'.format(message)
