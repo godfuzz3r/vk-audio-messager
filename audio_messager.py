@@ -16,13 +16,13 @@ class Messager:
 		banner = """
 Usage examples:
 
-./{} --user "some_short_link_to_user" --text "Джони, они на деревьях!"
+./{} --user="some_short_link_to_user" --text="Джони, они на деревьях!"
 
-./{} --chat "DecSec conf" --text "Эй, кто съел мои чебупели?"
+./{} --chat="DecSec conf" -t "Эй, кто съел мои чебупели?"
 
-python3 {} --user "https://vk.com/id%some_id%" --file some_music.wav
+python3 {} -u "https://vk.com/id%some_id%" --file=some_music.wav
 
-python3 {} --chat "Гражданская оборона" --file moya_oborona.mp3
+python3 {} --ch "Гражданская оборона" -f moya_oborona.mp3
 
 python3 {} --help
 		""".format(prog, prog, prog, prog, prog)
@@ -72,7 +72,9 @@ python3 {} --help
 		
 		(options, args) = parser.parse_args()		
 
-		
+		if (options.username == None and options.chatname == None) or (options.text == None and options.filename == None):
+			print(parser.usage)
+			sys.exit(0)
 		user_name = options.username
 		chat_name = options.chatname
 		file_name = options.filename

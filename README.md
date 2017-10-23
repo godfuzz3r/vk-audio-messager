@@ -21,23 +21,27 @@ sudo apt-get install ffmpeg
 Usage example:
 =====================
 
-./{} --user "some_short_link_to_user" "Джони, они на деревьях!"
+./{} --user="some_short_link_to_user" --text="Джони, они на деревьях!"
 
-./{} --chat "DecSec conf" "Эй, кто съел мои чебупели?"
+./{} --chat="DecSec conf" -t "Эй, кто съел мои чебупели?"
 
-python3 {} --user "https://vk.com/id%some_id%" --file some_music.wav
+python3 {} -u "https://vk.com/id%some_id%" --file=some_music.wav
 
-python3 {} --chat "Гражданская оборона" --file moya_oborona.mp3
+python3 {} --ch "Гражданская оборона" -f moya_oborona.mp3
 
 ***
 Options:
 =====================
 ```
---user  "iser_id"	           	link or id to user, who needs to send a message
+  -h, --help            				show this help message and exit
 
---chat  "chat name"	         	Name of chate to send a message
+  -u USER, --user=USER  				link or id to user, who needs to send a message
 
---file	filename.wav              Read voice/music form file
+  -c CHAT, --chat=CHAT					Name of chate to send a message
+
+  -f FILE, --file=FILE 					Read voice/music form file
+
+  -t "Some QUOTED text", --text="Some QUOTED text" 	Voice this text by robot
 ```
 Note that these are positional arguments, you can not permute them. 
 The message must be written in quotes.
