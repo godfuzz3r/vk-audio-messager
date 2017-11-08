@@ -103,8 +103,8 @@ python3 {} --help
 			vk = vk_api.VkApi(login=login, password=password)
 			vk.auth()
 			return vk
-		except:
-			print("Login failed. Check validation of your login and password in \"config.json\"")
+		except Exception as e:
+			print(e)
 			sys.exit(0)
 
 	def upload_file(self, path, vk):
