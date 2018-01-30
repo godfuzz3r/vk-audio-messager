@@ -1,153 +1,117 @@
-#!/usr/bin/python3
-import requests
-import vk_api
-import os
+#!/usr/bin/env python3
 import sys
-import subprocess
+import os
 import json
-import optparse
+import argparse
+from vk_api import VkApi
+import subprocess
+import requests
 
-class Messager:
-	def __init__(self):
-		if sys.argv[0][0:2] == './':
-			prog = sys.argv[0][3:]
-		else:
-			prog = sys.argv[0]
-		banner = """
-Usage examples:
+def connect(login, password):
+	try:
+		conn = VkApi(login=login, password=password)
+		conn.auth()
+		return conn
+	except Exception as e:
+		print(e)
+		sys.exit(0)
 
-./{} --user="some_short_link_to_user" --text="Джони, они на деревьях!"
+def create_voice(message, speed):
+	file_name = "message.wav"
+	cmd_1 = 'espeak -vru -s{0} -z "{1}" -w prepare.wav'.format(speed, message)
+	cmd_2 = 'ffmpeg -i prepare.wav -map_channel 0.0.0 {}'.format(file_name)
+	subprocess.call(cmd_1, shell=True)
+	subprocess.call(cmd_2, shell=True)
+	os.system("rm prepare.wav")
+	return file_name
 
-./{} --chat="DecSec conf" -t "Эй, кто съел мои чебупели?"
+def upload_file(path, vk):
+	audio = {'file': (path, open(path, 'rb'))}
+	upload_url = vk.method('docs.getMessagesUploadServer', {'type': 'audio_message'})['upload_url']
+	#print(upload_url)
+	upload = requests.post(upload_url, files=audio)
+	result = json.loads(upload.text)['file']
+	#print(result)
+	#print(result+'\n')
 
-python3 {} -u "https://vk.com/id%some_id%" --file=some_music.wav
+	saved = vk.method('docs.save', {'file': result, 'title': 'voice_message.ogg'})[0]
+	os.system("rm -R {}".format(path))
+	#print(saved)
+	#print(msg)
+	return saved
 
-python3 {} --ch "Гражданская оборона" -f moya_oborona.mp3
+def get_user_id(link, vk):
+	id = link
+	if 'vk.com/' in link:
+		id = link.split('/')[-1]
+	if not id.replace('id', '').isdigit():
+		id = vk.method('users.get', {'user_ids':id})[0]['id']
+	else:
+		id = id.replace('id', '')
+	#print('user_id: ', id)
+	return int(id)
 
-python3 {} --help
-		""".format(prog, prog, prog, prog, prog)
-
-		user, chat, text, file_name, Options = self.get_options(banner)
-
-		auth = self.auth(Options)
+def get_chat_id(link, vk):
+	chats = vk.method("messages.searchDialogs", {"q": link})
+	print(chats)
+	for chat in chats:
+		if chat['type'] == 'chat':
+			pass
+			return chat['id']
 		
-		try:
-			if file_name != None:
-				voice = "message.wav"
-				subprocess.call('ffmpeg -i {} -map_channel 0.0.0 {}'.format(file_name, voice), shell=True)
-				uploaded_voice = self.upload_file(voice, auth)
-			elif text != None:
-				voice = self.create_voice(text)
-				uploaded_voice = self.upload_file(voice, auth)
-			else:
-				sys.exit(0)
 
-			if user != None:
-				user_id = self.get_user_id(user, auth)
-				self.send_msg(uploaded_voice, user_id, auth)
-			elif chat != None:
-				chat = self.get_chat_id(chat, auth)
-				self.send_chat_msg(uploaded_voice, chat, auth)
-			else:
-				sys.exit(0)
-			print("Done")
-		except Exception as e:
-			print(e)
-			sys.exit(0)
-		
-	def get_options(self, banner):
-		parser = optparse.OptionParser(banner)
-		parser.add_option('-u', '--user', dest='username',
-				  help = 'link or id to user, who needs to send a message', 
-				  metavar = 'USER')
-		parser.add_option('-c', '--chat', dest='chatname',
+def send_msg(msg, user_id, vk):
+	attach = 'doc%s_%s' % (msg['owner_id'], msg['id'])
+	#print(attach)
+	vk.method('messages.send',{'user_id': user_id, 'attachment': attach})
+
+def send_chat_msg(msg, chat_id, vk):
+	attach = 'doc%s_%s' % (msg['owner_id'], msg['id'])
+	#print(attach)
+	vk.method('messages.send',{'chat_id': chat_id, 'attachment': attach})
+
+def main():
+	parser = argparse.ArgumentParser(description='')
+	parser.add_argument('-c', '--chat', dest='chat',
 				  help = 'Name of chate to send a message', 
 				  metavar = 'CHAT')
-		parser.add_option('-f', '--file', dest='filename',
+	parser.add_argument('-u', '--user', dest='user',
+				  help = 'link or id to user, who needs to send a message', 
+				  metavar = 'USER')
+	parser.add_argument('-f', '--file', dest='file',
 				  help = 'Read voice/music form file', 
 				  metavar = 'FILE')
-		parser.add_option('-t', '--text', dest='text',
+	parser.add_argument('-t', '--text', dest='text',
 				  help = 'Voice this text by robot',
 				  metavar = '"Some QUOTED text"')
-		
-		(options, args) = parser.parse_args()		
+	parser.add_argument('-s', '--speed', dest='speed',
+				  help = 'Voice speed. Default: 3',
+				  default='3')
 
-		if (options.username == None and options.chatname == None) or (options.text == None and options.filename == None):
-			print(parser.usage)
-			sys.exit(0)
-		user_name = options.username
-		chat_name = options.chatname
-		file_name = options.filename
-		text = options.text
-		Options = json.loads(open("config.json").read(), encoding='utf-8')
-		return user_name, chat_name, text, file_name, Options	
+	args = parser.parse_args()
 
-	def create_voice(self, message):
-		file_name = "message.wav"
-		cmd_1 = 'espeak -vru -s3 -z "{}" -w prepare.wav'.format(message)
-		cmd_2 = 'ffmpeg -i prepare.wav -map_channel 0.0.0 {}'.format(file_name)
-		subprocess.call(cmd_1, shell=True)
-		subprocess.call(cmd_2, shell=True)
-		os.system("rm prepare.wav")
-		return file_name
-	
-	def auth(self, options):
-		try:
-			login = options["login"]
-			password = options["password"]
-		except:
-			print("You need to specify login and password in \nconfig.json\" file")
-			sys.exit(0)
+	if args.file != None:
+		voice = "message.wav"
+		subprocess.call('ffmpeg -i {} -map_channel 0.0.0 {}'.format(file_name, voice), shell=True)
+	elif args.text != None:
+		voice = create_voice(args.text, args.speed)
 
-		try:
-			vk = vk_api.VkApi(login=login, password=password)
-			vk.auth()
-			return vk
-		except Exception as e:
-			print(e)
-			sys.exit(0)
+	config = json.loads(open("config.json").read(), encoding='utf-8')
+	login = config["login"]
+	password = config["password"]
 
-	def upload_file(self, path, vk):
-		audio = {'file': (path, open(path, 'rb'))}
-		upload_url = vk.method('docs.getMessagesUploadServer', {'type': 'audio_message'})['upload_url']
-		#print(upload_url)
-		upload = requests.post(upload_url, files=audio)
-		result = json.loads(upload.text)['file']
-		#print(result)
-		#print(result+'\n')
+	connection = connect(login, password)
+	uploaded_voice = upload_file(voice, connection)
 
-		saved = vk.method('docs.save', {'file': result, 'title': 'voice_message.ogg'})[0]
-		os.system("rm -R {}".format(path))
-		#print(saved)
-		#print(msg)
-		return saved
+	if args.user != None:
+		user_id = get_user_id(args.user, connection)
+		send_msg(uploaded_voice, user_id, connection)
+	elif args.chat != None:
+		chat = get_chat_id(args.chat, connection)
+		send_chat_msg(uploaded_voice, chat, connection)
 
-	def get_user_id(self, link, vk):
-		id = link
-		if 'vk.com/' in link:
-			id = link.split('/')[-1]
-		if not id.replace('id', '').isdigit():
-			id = vk.method('users.get', {'user_ids':id})[0]['id']
-		else:
-			id = id.replace('id', '')
-		#print('user_id: ', id)
-		return int(id)
+	print("Done")
 
-	def get_chat_id(self, link, vk):
-		chats = vk.method("messages.searchDialogs", {"q": link})
-		for chat in chats:
-			if chat['type'] == 'chat':
-				return chat['id']
-		
 
-	def send_msg(self, msg, user_id, vk):
-		attach = 'doc%s_%s' % (msg['owner_id'], msg['id'])
-		#print(attach)
-		vk.method('messages.send',{'user_id': user_id, 'attachment': attach})
-
-	def send_chat_msg(self, msg, chat_id, vk):
-		attach = 'doc%s_%s' % (msg['owner_id'], msg['id'])
-		#print(attach)
-		vk.method('messages.send',{'chat_id': chat_id, 'attachment': attach})
-		
-messager = Messager()
+if __name__ == "__main__":
+	main()
