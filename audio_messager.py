@@ -28,16 +28,11 @@ def create_voice(message, speed):
 def upload_file(path, vk):
 	audio = {'file': (path, open(path, 'rb'))}
 	upload_url = vk.method('docs.getMessagesUploadServer', {'type': 'audio_message'})['upload_url']
-	#print(upload_url)
 	upload = requests.post(upload_url, files=audio)
 	result = json.loads(upload.text)['file']
-	#print(result)
-	#print(result+'\n')
 
 	saved = vk.method('docs.save', {'file': result, 'title': 'voice_message.ogg'})[0]
 	os.system("rm -R {}".format(path))
-	#print(saved)
-	#print(msg)
 	return saved
 
 def get_user_id(link, vk):
@@ -90,18 +85,20 @@ def main():
 
 	args = parser.parse_args()
 
-	if args.file != None:
-		voice = "message.wav"
-		subprocess.call('ffmpeg -i {} -map_channel 0.0.0 {}'.format(file_name, voice), shell=True)
-	elif args.text != None:
-		voice = create_voice(args.text, args.speed)
-
 	config = json.loads(open("config.json").read(), encoding='utf-8')
 	login = config["login"]
 	password = config["password"]
 
+	print(args.file)
+	if args.text != None:
+		voice = create_voice(args.text, args.speed)
+	elif args.file != None:
+		voice = "message.wav"
+		os.system('ffmpeg -i {} -map_channel 0.0.0 {}'.format(args.file, voice))
+
 	connection = connect(login, password)
 	uploaded_voice = upload_file(voice, connection)
+	os.system("rm -f message.wav")
 
 	if args.user != None:
 		user_id = get_user_id(args.user, connection)
